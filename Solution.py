@@ -9,14 +9,124 @@ from Business.Order import Order, BadOrder
 from Business.Dish import Dish, BadDish
 from Business.OrderDish import OrderDish
 
+# ---------------------------- Tables Declarations: -----------------------------
+CUSTOMER_TABLE = '''
+Customer
+{
+    Cust_id             		INTEGER         					NOT NULL, CHECK (Cust_id > 0),
+    Full_name           		TEXT            					NOT NULL,
+    Age                 		INTEGER         					NOT NULL, CHECK (Age >= 18 AND Age <= 120),
+    Phone_num           		VARCHAR(10)     					NOT NULL, CHECK (LENGTH(Phone_num) = 10),
+    PRIMARY KEY (Cust_id)
+}'''
+
+ORDER_TABLE = '''
+Order
+{
+    Order_id                    INTEGER         					NOT NULL, CHECK (Order_id > 0),
+    Date                        TIMESTAMP(0) WITHOUT TIME ZONE      NOT NULL,
+    Delivery_fee                DECIMAL         					NOT NULL, CHECK (Delivery_fee >= 0),
+    Delivery_address            TEXT            					NOT NULL, CHECK (LENGTH(Delivery_address) >= 5),
+    PRIMARY KEY (Order_id)
+}'''
+
+DISH_TABLE = '''
+Dish
+{
+    Dish_id             		INTEGER								NOT NULL, CHECK (Dish_id > 0),
+    Name                		TEXT		                        NOT NULL, CHECK (LENGTH(Name) >= 4),
+    Price               		DECIMAL								NOT NULL, CHECK (Price > 0),
+    Is_active           		BOOLEAN								NOT NULL,
+    PRIMARY KEY (Dish_id)
+}'''
+
+RESERVATION_TABLE = '''
+Reservation
+{
+    Order_id               		INTEGER		                        NOT NULL, FOREIGN KEY (Order_id) REFERENCES Order(Order_id) ON DELETE CASCADE,
+    Cust_id             		INTEGER								NOT NULL, FOREIGN KEY (Cust_id) REFERENCES Customer(Cust_id) ON DELETE CASCADE,
+    PRIMARY KEY (Order_id)
+}'''
+
+ORDER_DETAILS_TABLE = '''
+Order_Details
+{
+    Order_id               		INTEGER		                        NOT NULL, FOREIGN KEY (Order_id) REFERENCES Order(Order_id) ON DELETE CASCADE,
+    Dish_id             		INTEGER								NOT NULL, FOREIGN KEY (Dish_id) REFERENCES Dish(Dish_id) ON DELETE CASCADE,
+    Dish_amount                 INTEGER                             NOT NULL, CHECK(Dish_amount > 0),
+    Dish_price                  DECIMAL                             NOT NULL, CHECK(Dish_price > 0),
+    PRIMARY KEY (Order_id, Dish_id)
+}'''
+
+CUSTOMER_RATINGS_TABLE = '''
+Customer_Ratings
+{
+    Cust_id               		INTEGER		                        NOT NULL, FOREIGN KEY (Cust_id) REFERENCES Customer(Cust_id) ON DELETE CASCADE,
+    Dish_id             		INTEGER								NOT NULL, FOREIGN KEY (Dish_id) REFERENCES Dish(Dish_id) ON DELETE CASCADE,
+    Rating                      INTEGER                             NOT NULL, CHECK(Rating > 0 AND Rating <= 5),
+    PRIMARY KEY (Cust_id, Dish_id)
+}'''
+
+
+TABLES = [CUSTOMER_TABLE, ORDER_TABLE, DISH_TABLE, RESERVATION_TABLE, ORDER_DETAILS_TABLE, CUSTOMER_RATINGS_TABLE]
 
 # ---------------------------------- CRUD API: ----------------------------------
 # Basic database functions
+def handle_database_exceptions(query: sql.SQL, e: Exception, print_flag = False) -> ReturnValue:
+    result = ReturnValue.ERROR
+    if print_flag:
+        print('Database Raised An Exception!')
+        print(f'The Query that is responsible for the exception - {query}')
+        print(e)
+
+    if isinstance(e, DatabaseException.NOT_NULL_VIOLATION):
+        result = ReturnValue.BAD_PARAMS
+    elif isinstance(e, DatabaseException.CHECK_VIOLATION):
+        result = ReturnValue.BAD_PARAMS
+    elif isinstance(e, DatabaseException.FOREIGN_KEY_VIOLATION):
+        result = ReturnValue.NOT_EXISTS
+    elif isinstance(e, DatabaseException.UNIQUE_VIOLATION):
+        result = ReturnValue.ALREADY_EXISTS
+    elif isinstance(e, DatabaseException.ConnectionInvalid):
+        result = ReturnValue.ERROR
+    elif isinstance(e, DatabaseException.UNKNOWN_ERROR):
+        result = ReturnValue.ERROR
+    elif isinstance(e, DatabaseException.database_ini_ERROR):
+        result = ReturnValue.ERROR
+
+    return result
+
+def handle_query(query: sql.SQL) -> Tuple[ReturnValue, int, Connector.ResultSet, Exception]:
+    query_result = ReturnValue.OK
+    rows_amount = 0
+    result = None
+    recieved_exp = None
+    conn = Connector.DBConnector()
+
+    try:
+        rows_amount, result = conn.execute(query)
+        conn.commit()
+    except Exception as e:
+        recieved_exp = e
+        query_result = handle_database_exceptions(query, e, DEBUG_FLAG)
+    finally:
+        conn.close()
+
+    return query_result, rows_amount, result, recieved_exp
+
+def return_Value_select(qstatus:ReturnValue, rows_effected)-> ReturnValue:
+        if qstatus == ReturnValue.OK and rows_effected == 0:
+            return ReturnValue.NOT_EXISTS
+        return qstatus
 
 
 def create_tables() -> None:
-    # TODO: implement
-    pass
+    query_string = ''
+    for table in TABLES:
+        query_string += f'CREATE TABLE {table};\n'
+
+    query = sql.SQL(query_string)
+    handle_query(query)
 
 
 def clear_tables() -> None:
