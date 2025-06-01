@@ -11,64 +11,65 @@ from Business.OrderDish import OrderDish
 
 # ---------------------------- Tables Declarations: -----------------------------
 CUSTOMER_TABLE = '''
-Customer
-{
+Customers
+(
     Cust_id             		INTEGER         					NOT NULL, CHECK (Cust_id > 0),
     Full_name           		TEXT            					NOT NULL,
     Age                 		INTEGER         					NOT NULL, CHECK (Age >= 18 AND Age <= 120),
     Phone_num           		VARCHAR(10)     					NOT NULL, CHECK (LENGTH(Phone_num) = 10),
     PRIMARY KEY (Cust_id)
-}'''
+)'''
 
 ORDER_TABLE = '''
-Order
-{
+Orders
+(
     Order_id                    INTEGER         					NOT NULL, CHECK (Order_id > 0),
     Date                        TIMESTAMP(0) WITHOUT TIME ZONE      NOT NULL,
     Delivery_fee                DECIMAL         					NOT NULL, CHECK (Delivery_fee >= 0),
     Delivery_address            TEXT            					NOT NULL, CHECK (LENGTH(Delivery_address) >= 5),
     PRIMARY KEY (Order_id)
-}'''
+)'''
 
 DISH_TABLE = '''
-Dish
-{
+Dishes
+(
     Dish_id             		INTEGER								NOT NULL, CHECK (Dish_id > 0),
     Name                		TEXT		                        NOT NULL, CHECK (LENGTH(Name) >= 4),
     Price               		DECIMAL								NOT NULL, CHECK (Price > 0),
     Is_active           		BOOLEAN								NOT NULL,
     PRIMARY KEY (Dish_id)
-}'''
+)'''
 
 RESERVATION_TABLE = '''
-Reservation
-{
-    Order_id               		INTEGER		                        NOT NULL, FOREIGN KEY (Order_id) REFERENCES Order(Order_id) ON DELETE CASCADE,
-    Cust_id             		INTEGER								NOT NULL, FOREIGN KEY (Cust_id) REFERENCES Customer(Cust_id) ON DELETE CASCADE,
+Reservations
+(
+    Order_id               		INTEGER		                        NOT NULL, FOREIGN KEY (Order_id) REFERENCES Orders(Order_id) ON DELETE CASCADE,
+    Cust_id             		INTEGER								NOT NULL, FOREIGN KEY (Cust_id) REFERENCES Customers(Cust_id) ON DELETE CASCADE,
     PRIMARY KEY (Order_id)
-}'''
+)'''
 
 ORDER_DETAILS_TABLE = '''
 Order_Details
-{
-    Order_id               		INTEGER		                        NOT NULL, FOREIGN KEY (Order_id) REFERENCES Order(Order_id) ON DELETE CASCADE,
-    Dish_id             		INTEGER								NOT NULL, FOREIGN KEY (Dish_id) REFERENCES Dish(Dish_id) ON DELETE CASCADE,
+(
+    Order_id               		INTEGER		                        NOT NULL, FOREIGN KEY (Order_id) REFERENCES Orders(Order_id) ON DELETE CASCADE,
+    Dish_id             		INTEGER								NOT NULL, FOREIGN KEY (Dish_id) REFERENCES Dishes(Dish_id) ON DELETE CASCADE,
     Dish_amount                 INTEGER                             NOT NULL, CHECK(Dish_amount > 0),
     Dish_price                  DECIMAL                             NOT NULL, CHECK(Dish_price > 0),
     PRIMARY KEY (Order_id, Dish_id)
-}'''
+)'''
 
 CUSTOMER_RATINGS_TABLE = '''
 Customer_Ratings
-{
-    Cust_id               		INTEGER		                        NOT NULL, FOREIGN KEY (Cust_id) REFERENCES Customer(Cust_id) ON DELETE CASCADE,
-    Dish_id             		INTEGER								NOT NULL, FOREIGN KEY (Dish_id) REFERENCES Dish(Dish_id) ON DELETE CASCADE,
+(
+    Cust_id               		INTEGER		                        NOT NULL, FOREIGN KEY (Cust_id) REFERENCES Customers(Cust_id) ON DELETE CASCADE,
+    Dish_id             		INTEGER								NOT NULL, FOREIGN KEY (Dish_id) REFERENCES Dishes(Dish_id) ON DELETE CASCADE,
     Rating                      INTEGER                             NOT NULL, CHECK(Rating > 0 AND Rating <= 5),
     PRIMARY KEY (Cust_id, Dish_id)
-}'''
+)'''
 
 
 TABLES = [CUSTOMER_TABLE, ORDER_TABLE, DISH_TABLE, RESERVATION_TABLE, ORDER_DETAILS_TABLE, CUSTOMER_RATINGS_TABLE]
+Tables_Names = ['Customers', 'Orders', 'Dishes', 'Reservations', 'Order_Details', 'Customer_Ratings']
 
 # ---------------------------------- CRUD API: ----------------------------------
 # Basic database functions
@@ -108,7 +109,7 @@ def handle_query(query: sql.SQL) -> Tuple[ReturnValue, int, Connector.ResultSet,
         conn.commit()
     except Exception as e:
         recieved_exp = e
-        query_result = handle_database_exceptions(query, e, DEBUG_FLAG)
+        query_result = handle_database_exceptions(query, e)
     finally:
         conn.close()
 
@@ -125,85 +126,207 @@ def create_tables() -> None:
     for table in TABLES:
         query_string += f'CREATE TABLE {table};\n'
 
-    query = sql.SQL(query_string)
-    handle_query(query)
+    print(query_string)
 
+    query = sql.SQL(query_string)
+    _, _, _, exp = handle_query(query)
+    if(None != exp):
+        print('create_tables')
+        print(exp)
 
 def clear_tables() -> None:
-    # TODO: implement
-    pass
+    query_string = '\n'.join([f"DELETE * FROM {table} CASCADE;" for table in Tables_Names])
+    query = sql.SQL(query_string)
+    _, _, _, exp = handle_query(query)
+    if (None != exp):
+        print('clear_tables')
+        print(exp)
 
 
 def drop_tables() -> None:
-    # TODO: implement
-    pass
+    query_string = '\n'.join([f"DROP TABLE IF EXISTS {table} CASCADE;" for table in Tables_Names])
+    query = sql.SQL(query_string)
+    _, _, _, exp = handle_query(query)
+    if (None != exp):
+        print('drop_tables')
+        print(exp)
 
 
 # CRUD API
 
 def add_customer(customer: Customer) -> ReturnValue:
-    # TODO: implement
-    pass
+    # TODO - Check Legal Params (Should be done by the DB)
+    query_string = f'INSERT INTO Customers ' \
+                   f"VALUES ({customer.get_cust_id()}, '{customer.get_full_name()}', {customer.get_age()}, '{customer.get_phone()}');"
+    query = sql.SQL(query_string)
+    RetVal, _, _, exp = handle_query(query)
+    if (None != exp):
+        print('add_customer')
+        print(exp)
+
+    return RetVal
 
 
 def get_customer(customer_id: int) -> Customer:
-    # TODO: implement
-    pass
+    # TODO - Check Legal Params (Should be done by the DB)
+    query_string = f'SELECT * FROM Customers ' \
+                   f"WHERE Cust_id = {customer_id};"
+    query = sql.SQL(query_string)
+    RetVal, _, _, exp = handle_query(query)
+    if (None != exp):
+        print('get_customer')
+        print(exp)
+
+    return RetVal
 
 
 def delete_customer(customer_id: int) -> ReturnValue:
-    # TODO: implement
-    pass
+    # TODO - Check Legal Params (Should be done by the DB)
+    query_string = f'DELETE FROM Customers ' \
+                   f"VALUES WHERE cust_id = {customer_id};"
+    query = sql.SQL(query_string)
+    RetVal, _, _, exp = handle_query(query)
+    if (None != exp):
+        print('delete_customer')
+        print(exp)
+
+    return RetVal
 
 
 def add_order(order: Order) -> ReturnValue:
-    # TODO: implement
-    pass
+    # TODO - Check Legal Params (Should be done by the DB)
+    query_string = f'INSERT INTO Orders ' \
+                   f"VALUES ({order.get_order_id()}, {order.get_datetime()}, {order.get_delivery_fee()}, '{order.get_delivery_address()}');"
+    query = sql.SQL(query_string)
+    RetVal, _, _, exp = handle_query(query)
+    if (None != exp):
+        print('add_order')
+        print(exp)
+
+    return RetVal
 
 
 def get_order(order_id: int) -> Order:
-    # TODO: implement
-    pass
+    # TODO - Check Legal Params (Should be done by the DB)
+    query_string = f'SELECT * FROM Orders ' \
+                   f"WHERE Order_id = {order_id};"
+    query = sql.SQL(query_string)
+    RetVal, _, _, exp = handle_query(query)
+    if (None != exp):
+        print('get_order')
+        print(exp)
+
+    return RetVal
 
 
 def delete_order(order_id: int) -> ReturnValue:
-    # TODO: implement
-    pass
+    # TODO - Check Legal Params (Should be done by the DB)
+    query_string = f'DELETE FROM Orders ' \
+                   f"VALUES WHERE order_id = {order_id};"
+    query = sql.SQL(query_string)
+    RetVal, _, _, exp = handle_query(query)
+    if (None != exp):
+        print('delete_order')
+        print(exp)
+
+    return RetVal
 
 
 def add_dish(dish: Dish) -> ReturnValue:
-    # TODO: implement
-    pass
+    # TODO - Check Legal Params (Should be done by the DB)
+    query_string = f'INSERT INTO Dishes ' \
+                   f"VALUES ({dish.get_dish_id()}, '{dish.get_name()}', {dish.get_price()}, '{dish.get_is_active()}');"
+    query = sql.SQL(query_string)
+    RetVal, _, _, exp = handle_query(query)
+    if (None != exp):
+        print('add_dish')
+        print(exp)
+
+    return RetVal
 
 
 def get_dish(dish_id: int) -> Dish:
-    # TODO: implement
-    pass
+    # TODO - Check Legal Params (Should be done by the DB)
+    query_string = f'SELECT * FROM Dishes ' \
+                   f"WHERE Dish_id = {dish_id};"
+    query = sql.SQL(query_string)
+    RetVal, _, _, exp = handle_query(query)
+    if (None != exp):
+        print('get_dish')
+        print(exp)
+
+    return RetVal
 
 
 def update_dish_price(dish_id: int, price: float) -> ReturnValue:
-    # TODO: implement
-    pass
+    # TODO - Check Legal Params (Should be done by the DB)
+    query_string = f'UPDATE Dishes SET Price = {price}' \
+                   f"WHERE Dish_id = {dish_id};"
+    query = sql.SQL(query_string)
+    RetVal, _, _, exp = handle_query(query)
+    if (None != exp):
+        print('update_dish_price')
+        print(exp)
+
+    return RetVal
 
 
 def update_dish_active_status(dish_id: int, is_active: bool) -> ReturnValue:
-    # TODO: implement
-    pass
+    # TODO - Check Legal Params (Should be done by the DB)
+    query_string = f'UPDATE Dishes SET Is_active = {is_active}' \
+                   f"WHERE Dish_id = {dish_id};"
+    query = sql.SQL(query_string)
+    RetVal, _, _, exp = handle_query(query)
+    if (None != exp):
+        print('update_dish_active_status')
+        print(exp)
+
+    return RetVal
 
 
 def customer_placed_order(customer_id: int, order_id: int) -> ReturnValue:
-    # TODO: implement
-    pass
+    # TODO - Check Legal Params (Should be done by the DB)
+    query_string = f'INSERT INTO Reservations ' \
+                   f"VALUES ({order_id}, {customer_id});"
+    query = sql.SQL(query_string)
+    RetVal, _, _, exp = handle_query(query)
+    if (None != exp):
+        print('customer_placed_order')
+        print(exp)
+
+    return RetVal
 
 
 def get_customer_that_placed_order(order_id: int) -> Customer:
-    # TODO: implement
-    pass
+    # TODO - Check Legal Params (Should be done by the DB)
+    resultCustomer = BadCustomer;
+    query_string = f'SELECT * FROM Customers ' \
+                   f'WHERE Cust_id = ' \
+                   f'(SELECT R.Cust_id FROM Reservations R ' \
+                   f"WHERE Order_id = {order_id});"
+    query = sql.SQL(query_string)
+    RetVal, rowsAmount, resultRows, exp = handle_query(query)
+    if (None != exp):
+        print('get_customer_that_placed_order')
+        print(exp)
+    if(1 == rowsAmount):
+        resultCustomer = Customer(resultRows[0]['Cust_id'], resultRows[0]['Full_name'], resultRows[0]['Age'], resultRows[0]['Phone_num'])
+
+    return resultCustomer
 
 
 def order_contains_dish(order_id: int, dish_id: int, amount: int) -> ReturnValue:
-    # TODO: implement
-    pass
+    # TODO - Check Legal Params (Should be done by the DB)
+    query_string = f'INSERT INTO Order_Details ' \
+                   f"VALUES ({order_id}, {dish_id}, {amount}, " \
+                   f"(SELECT Price FROM Dishes WHERE Dish_id = {dish_id} AND Is_active = TRUE));"
+    query = sql.SQL(query_string)
+    RetVal, _, _, exp = handle_query(query)
+    if (None != exp):
+        print('order_contains_dish')
+        print(exp)
+
+    return RetVal
 
 
 def order_does_not_contain_dish(order_id: int, dish_id: int) -> ReturnValue:

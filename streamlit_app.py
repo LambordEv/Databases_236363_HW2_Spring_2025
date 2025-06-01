@@ -30,6 +30,7 @@ def main():
         st.warning("Please initialize the database first.")
         return
 
+    # TODO Check if we should implement any other function in this streamlit shit
     action = st.selectbox("Choose Action", [
         "Add Customer",
         "Add Dish",
@@ -92,15 +93,15 @@ def main():
 
     elif action == "Visualize Tables":
         st.subheader("Customers")
-        res = Connector.DBConnector().execute("SELECT * FROM customer")[1]
+        res = Connector.DBConnector().execute("SELECT * FROM Customers")[1]
         st.dataframe(pd.DataFrame(res.rows))
 
         st.subheader("Orders")
-        res = Connector.DBConnector().execute("SELECT * FROM order")[1]
+        res = Connector.DBConnector().execute("SELECT * FROM orders")[1]
         st.dataframe(pd.DataFrame(res.rows))
 
         st.subheader("Dishes")
-        res = Connector.DBConnector().execute("SELECT * FROM dish")[1]
+        res = Connector.DBConnector().execute("SELECT * FROM dishes")[1]
         st.dataframe(pd.DataFrame(res.rows))
 
 
